@@ -17,6 +17,7 @@
 	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 	THE SOFTWARE.
+	http://openglbook.com/the-book/chapter-4-entering-the-third-dimension/
 */
 #include "Utils.h"
 #include "wavefront_loader.h"
@@ -33,7 +34,7 @@ GLuint
 	ProjectionMatrixUniformLocation,
 	ViewMatrixUniformLocation,
 	ModelMatrixUniformLocation,
-	BufferIds[3] = { 0 },
+	BufferIds[1] = { 0 },
 	ShaderIds[3] = { 0 };
 
 Matrix
@@ -229,7 +230,7 @@ void CreateCube()
 	ExitOnGLError("ERROR: Could not bind the VAO");
 
 	glEnableVertexAttribArray(0);
-	
+	glEnableVertexAttribArray(1);
 	ExitOnGLError("ERROR: Could not enable vertex attributes");
 
 	glGenBuffers(2, &BufferIds[1]);
@@ -244,13 +245,14 @@ void CreateCube()
 	//defing the positions
 	//attribute index  0 | 3 members (pos) | They Are floats (GL_FLOAT) | Do Not Normalize | stride is 12 | mystery pointer?) 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0].normal), (GLvoid*)0);
 	//defining the colors
 	//glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(VERTICES[0]), (GLvoid*)sizeof(VERTICES[0].Position));
 	ExitOnGLError("ERROR: Could not set VAO attributes");
 
 
 
-	//////DEFIN 
+	//////DEFINE 
 	int indiceSize = theModel->theMesh.indices.size() * sizeof(theModel->theMesh.indices[0]);
 	//int test = sizeof(INDICES);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, BufferIds[2]);

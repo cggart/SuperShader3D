@@ -30,20 +30,13 @@ struct pos2
 
 struct vertex
 {
-	vertex::vertex()
-	{
-		position = 0;
-		normal = 0;
-		uv = 0;
-	}
-	int position;
-	int normal;
-	int uv;
+	pos3 position;
+	pos3 normal;
 };
 
 	struct mesh
 	{
-	std::vector<pos3> pos;
+	std::vector<vertex> pos;
 	std::vector<pos3> normals;
 	std::vector<pos2> uvs;
 	std::vector<color4> colors;
@@ -55,9 +48,9 @@ class gModel_3d
 public:
 
 	mesh theMesh;
-	gModel_3d::gModel_3d(std::vector<pos3> posArg, std::vector<pos3> normalArg, std::vector<color4> colorArg, std::vector<pos2> uvArg, std::vector<int> argIndices)
+	gModel_3d::gModel_3d(std::vector<vertex> vertexArg, std::vector<pos3> normalArg, std::vector<color4> colorArg, std::vector<pos2> uvArg, std::vector<int> argIndices)
 	{
-		theMesh.pos = posArg;
+		theMesh.pos = vertexArg;
 		theMesh.normals = normalArg;
 		theMesh.colors = colorArg;
 		theMesh.uvs = uvArg;

@@ -9,6 +9,8 @@ gModel_3d* load_wavefront_obj(char* filepath)
 	std::vector<pos3> normalList;
 	std::vector<color4> colorList;
 	std::vector<int> indices;
+	std::vector<int> normal_indices;
+	std::vector<vertex> finalList;
 	std::vector<pos2> uvList;
 	FILE * file = std::fopen(filepath, "r");
 	if( file == NULL )
@@ -46,16 +48,36 @@ gModel_3d* load_wavefront_obj(char* filepath)
 			}
 			else if ( strcmp( lineHeader, "f" ) == 0 )
 			{
-				int vert_1,vert_2,vert_3,temp;
+				int vert_1,vert_2,vert_3,normIndexA,normIndexB,normIndexC,temp;
 				unsigned int positionIndex[3], uvIndex[3], normalIndex[3];
-				int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vert_1, &temp, &temp, &vert_2, &temp, &temp, &vert_3, &temp, &temp );
+				int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vert_1, &temp, &normIndexA, &vert_2, &temp, &normIndexB, &vert_3, &temp, &normIndexC );
 				//pushing back the vertex
+				//Here we need to build re-order everything so that we get an in order vertex stream
+				//We get the position of the entire vertex from the position which is our indice
+				//However each vertex is defined along with its normal and stuff so we need to "merge" those
+				//together to form a solid stream.
+			
+				normIndexA = normIndexA  -1;
+				normIndexB = normIndexB - 1;
+				normIndexC= normIndexC - 1;
+
+				normal_indices.push_back(normIndexA);
+				normal_indices.push_back(normIndexB);
+				normal_indices.push_back(normIndexC);
+
 				vert_1 = vert_1  -1;
 				vert_2 = vert_2 - 1;
 				vert_3 = vert_3 - 1;
+
 				indices.push_back(vert_1);
 				indices.push_back(vert_2);
 				indices.push_back(vert_3);
+
+				//Here we merge our positions & normals into one array.
+				//the normalIndex and positionIndex array should be the same length
+				
+
+
 					if (matches != 9)
 					{
 						std::cout << "File can't be read by our simple parser : ( Try exporting with other options\n";
@@ -64,8 +86,25 @@ gModel_3d* load_wavefront_obj(char* filepath)
 			}
 		}
 	}
+	int bob = indices.size();
+	vertex *final  = new vertex[bob];
+	int test = sizeof(*final);
 
-	gModel_3d* theModel = new gModel_3d(posList,normalList,colorList,uvList,indices);
+	finalList.resize(indices.size());
+
+	if (normal_indices.size() == indices.size())
+{
+					
+		for(int i = 0; i < indices.size(); ++i) 
+		{ 
+			vertex tempVert;
+			tempVert.position = posList[indices[i]];
+			tempVert.normal = normalList[normal_indices[i]];
+			finalList[indices[i]] = tempVert;
+		}
+
+}
+	gModel_3d* theModel = new gModel_3d(finalList,normalList,colorList,uvList,indices);
 	return theModel;
 }
 std::string get_file_contents(const char *filename)
