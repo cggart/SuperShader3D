@@ -233,7 +233,7 @@ void CreateCube()
 	glEnableVertexAttribArray(1);
 	ExitOnGLError("ERROR: Could not enable vertex attributes");
 
-	glGenBuffers(2, &BufferIds[1]);
+	
 	ExitOnGLError("ERROR: Could not generate the buffer objects");
 	int size = theModel->theMesh.pos.size() * sizeof(theModel->theMesh.pos[0]) ;
 	glBindBuffer(GL_ARRAY_BUFFER, BufferIds[1]);
@@ -245,7 +245,7 @@ void CreateCube()
 	//defing the positions
 	//attribute index  0 | 3 members (pos) | They Are floats (GL_FLOAT) | Do Not Normalize | stride is 12 | mystery pointer?) 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0].normal), (GLvoid*)0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)sizeof(theModel->theMesh.pos[0].position));
 	//defining the colors
 	//glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(VERTICES[0]), (GLvoid*)sizeof(VERTICES[0].Position));
 	ExitOnGLError("ERROR: Could not set VAO attributes");
