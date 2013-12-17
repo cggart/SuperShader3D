@@ -231,6 +231,7 @@ void CreateCube()
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
 	ExitOnGLError("ERROR: Could not enable vertex attributes");
 
 	
@@ -240,17 +241,14 @@ void CreateCube()
 	glBufferData(GL_ARRAY_BUFFER, size, &theModel->theMesh.pos[0], GL_STATIC_DRAW);
 	ExitOnGLError("ERROR: Could not bind the VBO to the VAO");
 
-
-	
 	//defing the positions
-	//attribute index  0 | 3 members (pos) | They Are floats (GL_FLOAT) | Do Not Normalize | stride is 12 | mystery pointer?) 
+	//attribute index  0 | 3 members (pos) | They Are floats (GL_FLOAT) | Do Not Normalize | stride is sizeof(vertex) | mystery pointer?) 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)0);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)sizeof(theModel->theMesh.pos[0].position));
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.uvs[0]), (GLvoid*)sizeof(theModel->theMesh.pos[0].uv));
 	//defining the colors
 	//glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(VERTICES[0]), (GLvoid*)sizeof(VERTICES[0].Position));
 	ExitOnGLError("ERROR: Could not set VAO attributes");
-
-
 
 	//////DEFINE 
 	int indiceSize = theModel->theMesh.indices.size() * sizeof(theModel->theMesh.indices[0]);
@@ -283,14 +281,15 @@ void DrawCube(void)
 
 	if (LastTime == 0)
 		LastTime = Now;
-
+	ViewMatrix = IDENTITY_MATRIX;
+	TranslateMatrix(&ViewMatrix, 0.1, 0.1, -2);
 	CubeRotation += 45.0f * ((float)(Now - LastTime) / CLOCKS_PER_SEC);
 	CubeAngle = DegreesToRadians(CubeRotation);
 	LastTime = Now;
 
 	ModelMatrix = IDENTITY_MATRIX;
 	RotateAboutY(&ModelMatrix, CubeAngle);
-	RotateAboutX(&ModelMatrix, CubeAngle);
+	//RotateAboutX(&ModelMatrix, CubeAngle);
 
 	glUseProgram(ShaderIds[0]);
 	ExitOnGLError("ERROR: Could not use the shader program");

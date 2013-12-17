@@ -32,6 +32,7 @@ struct vertex
 {
 	pos3 position;
 	pos3 normal;
+	pos2 uv;
 };
 
 	struct mesh

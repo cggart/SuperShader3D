@@ -10,6 +10,7 @@ gModel_3d* load_wavefront_obj(char* filepath)
 	std::vector<color4> colorList;
 	std::vector<int> indices;
 	std::vector<int> normal_indices;
+	std::vector<int> uv_indices;
 	std::vector<vertex> finalList;
 	std::vector<pos2> uvList;
 	FILE * file = std::fopen(filepath, "r");
@@ -48,15 +49,17 @@ gModel_3d* load_wavefront_obj(char* filepath)
 			}
 			else if ( strcmp( lineHeader, "f" ) == 0 )
 			{
-				int vert_1,vert_2,vert_3,normIndexA,normIndexB,normIndexC,temp;
+				int vert_1,vert_2,vert_3,normIndexA,normIndexB,normIndexC,temp,uv_indexA,uv_indexB;
 				unsigned int positionIndex[3], uvIndex[3], normalIndex[3];
-				int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vert_1, &temp, &normIndexA, &vert_2, &temp, &normIndexB, &vert_3, &temp, &normIndexC );
+				int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vert_1, &uv_indexA, &normIndexA, &vert_2, &uv_indexB, &normIndexB, &vert_3, &temp, &normIndexC );
 				//pushing back the vertex
 				//Here we need to build re-order everything so that we get an in order vertex stream
 				//We get the position of the entire vertex from the position which is our indice
 				//However each vertex is defined along with its normal and stuff so we need to "merge" those
 				//together to form a solid stream.
-			
+
+
+				//Objs start at 1 instead of 0, which is nonsense, so we subtract 1
 				normIndexA = normIndexA  -1;
 				normIndexB = normIndexB - 1;
 				normIndexC= normIndexC - 1;
@@ -73,10 +76,15 @@ gModel_3d* load_wavefront_obj(char* filepath)
 				indices.push_back(vert_2);
 				indices.push_back(vert_3);
 
+				uv_indexA = uv_indexA  -1;
+				uv_indexB = uv_indexB - 1;
+
+				uv_indices.push_back(uv_indexA);
+				uv_indices.push_back(uv_indexB);
+
+
 				//Here we merge our positions & normals into one array.
 				//the normalIndex and positionIndex array should be the same length
-				
-
 
 					if (matches != 9)
 					{
@@ -86,24 +94,31 @@ gModel_3d* load_wavefront_obj(char* filepath)
 			}
 		}
 	}
-	int bob = indices.size();
-	vertex *final  = new vertex[bob];
+	int numberOfVerts = posList.size();
+	vertex *final  = new vertex[numberOfVerts];
 	int test = sizeof(*final);
 
-	finalList.resize(indices.size());
+	//We divide the total number of indices by 3 since there
+	//are an expected 3 elements per vert (pos,uv, & normal).
+	//Keep in mind that the total number of vetices will
+	//exceed the number of positions as a unique vertice
+	//must be created for each unique element (normal, uv, ...)
+	//in order to get the true vert count we divide indices
+	//instead of looking directly at the verts.
 
-	if (normal_indices.size() == indices.size())
-{
-					
-		for(int i = 0; i < indices.size(); ++i) 
-		{ 
+	finalList.resize(indices.size()/3);
+	int bo0b = indices.size()/3;
+	int tingsize = uv_indices.size()/sizeof(pos2);
+	int w = sizeof(pos3);
+		for(int i = 0; i < indices.size()/3; ++i) 
+		{
 			vertex tempVert;
 			tempVert.position = posList[indices[i]];
 			tempVert.normal = normalList[normal_indices[i]];
+			tempVert.uv = uvList[uv_indices[i]];
 			finalList[indices[i]] = tempVert;
 		}
 
-}
 	gModel_3d* theModel = new gModel_3d(finalList,normalList,colorList,uvList,indices);
 	return theModel;
 }
