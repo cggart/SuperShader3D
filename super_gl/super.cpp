@@ -21,6 +21,7 @@
 */
 #include "Utils.h"
 #include "wavefront_loader.h"
+#include "lodepng.h"
 
 #define WINDOW_TITLE_PREFIX "Super 3D"
 int tricount;
@@ -54,9 +55,6 @@ void IdleFunction(void);
 void CreateCube(void);
 void DestroyCube(void);
 void DrawCube(void);
-
-
-
 
 int main(int argc, char* argv[])
 {
@@ -120,8 +118,8 @@ void InitWindow(int argc, char* argv[])
 	glutInitContextProfile(GLUT_CORE_PROFILE);
 
 	glutSetOption(
-		GLUT_ACTION_ON_WINDOW_CLOSE,
-		GLUT_ACTION_GLUTMAINLOOP_RETURNS
+	GLUT_ACTION_ON_WINDOW_CLOSE,
+	GLUT_ACTION_GLUTMAINLOOP_RETURNS
 	);
 	
 	glutInitWindowSize(CurrentWidth, CurrentHeight);
@@ -137,7 +135,6 @@ void InitWindow(int argc, char* argv[])
 		);
 		exit(EXIT_FAILURE);
 	}
-	
 	glutReshapeFunc(ResizeFunction);
 	glutDisplayFunc(RenderFunction);
 	glutIdleFunc(IdleFunction);

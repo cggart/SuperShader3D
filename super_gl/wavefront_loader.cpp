@@ -49,16 +49,16 @@ gModel_3d* load_wavefront_obj(char* filepath)
 			}
 			else if ( strcmp( lineHeader, "f" ) == 0 )
 			{
-				int vert_1,vert_2,vert_3,normIndexA,normIndexB,normIndexC,temp,uv_indexA,uv_indexB;
+				int vert_1,vert_2,vert_3,normIndexA,normIndexB,normIndexC,temp,uv_indexA,uv_indexB,uv_indexC;
 				unsigned int positionIndex[3], uvIndex[3], normalIndex[3];
-				int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vert_1, &uv_indexA, &normIndexA, &vert_2, &uv_indexB, &normIndexB, &vert_3, &temp, &normIndexC );
+				int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vert_1, &uv_indexA, &normIndexA, &vert_2, &uv_indexB, &normIndexB, &vert_3, &uv_indexC, &normIndexC );
 				//pushing back the vertex
 				//Here we need to build re-order everything so that we get an in order vertex stream
 				//We get the position of the entire vertex from the position which is our indice
 				//However each vertex is defined along with its normal and stuff so we need to "merge" those
 				//together to form a solid stream.
 
-
+				//RE-WRITE THIS GARBAGE YOU NEED TO COMBINE EACH VERT INTO A STRUCT!
 				//Objs start at 1 instead of 0, which is nonsense, so we subtract 1
 				normIndexA = normIndexA  -1;
 				normIndexB = normIndexB - 1;
@@ -78,10 +78,11 @@ gModel_3d* load_wavefront_obj(char* filepath)
 
 				uv_indexA = uv_indexA  -1;
 				uv_indexB = uv_indexB - 1;
+				uv_indexC = uv_indexC - 1;
 
 				uv_indices.push_back(uv_indexA);
 				uv_indices.push_back(uv_indexB);
-
+				uv_indices.push_back(uv_indexC);
 
 				//Here we merge our positions & normals into one array.
 				//the normalIndex and positionIndex array should be the same length
@@ -106,11 +107,10 @@ gModel_3d* load_wavefront_obj(char* filepath)
 	//in order to get the true vert count we divide indices
 	//instead of looking directly at the verts.
 
-	finalList.resize(indices.size()/3);
-	int bo0b = indices.size()/3;
-	int tingsize = uv_indices.size()/sizeof(pos2);
-	int w = sizeof(pos3);
-		for(int i = 0; i < indices.size()/3; ++i) 
+	finalList.resize(indices.size());
+	int testzzz = uv_indices.size();
+	int testzzzq = normal_indices.size();
+		for(int i = 0; i < indices.size(); ++i) 
 		{
 			vertex tempVert;
 			tempVert.position = posList[indices[i]];
