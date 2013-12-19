@@ -37,6 +37,9 @@ gModel_3d* load_wavefront_obj(char* filepath)
 			else if ( strcmp( lineHeader, "vn" ) == 0 )
 			{
 				pos3 normal;
+				//normal.x = 1;
+				//normal.y = 0;
+				//normal.z = 1;
 				fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z );
 				normalList.push_back(normal);
 				
@@ -45,6 +48,7 @@ gModel_3d* load_wavefront_obj(char* filepath)
 			{
 				pos2 texture;
 				fscanf(file, "%f %f %f\n", &texture.u, &texture.v);
+			
 				uvList.push_back(texture);
 			}
 			else if ( strcmp( lineHeader, "f" ) == 0 )
@@ -99,13 +103,7 @@ gModel_3d* load_wavefront_obj(char* filepath)
 	vertex *final  = new vertex[numberOfVerts];
 	int test = sizeof(*final);
 
-	//We divide the total number of indices by 3 since there
-	//are an expected 3 elements per vert (pos,uv, & normal).
-	//Keep in mind that the total number of vetices will
-	//exceed the number of positions as a unique vertice
-	//must be created for each unique element (normal, uv, ...)
-	//in order to get the true vert count we divide indices
-	//instead of looking directly at the verts.
+
 
 	finalList.resize(indices.size());
 	int testzzz = uv_indices.size();

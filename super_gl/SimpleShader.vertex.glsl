@@ -5,17 +5,24 @@
 //http://stackoverflow.com/questions/18935203/shader-position-vec4-or-vec3
 layout(location=0) in vec4 in_Position;
 layout(location=1) in vec4 in_Normal;
-layout(location=2) in vec4 in_Tex;
+layout(location=2) in vec2 UVs;
+uniform sampler2D myTextureSampler;
 
-out vec4 ex_Color;
+out vec3 texColor;
 out vec3 vertex_normal;
 out vec4 eyeCoords;
+
+
 
 // constants
 
 uniform mat4 ModelMatrix;
 uniform mat4 ViewMatrix;
 uniform mat4 ProjectionMatrix;
+
+
+mat3 matrix_inverse_transpose;
+
 mat3 Normal_Matrix = mat3(transpose(inverse(ModelMatrix * ViewMatrix)));
 
 struct material
@@ -31,9 +38,10 @@ material mymaterial = material(
   vec4(1.0, 1.0, 1.0, 1.0),
   5.0
 );
-
+ 
 void main(void)
 {
+	texColor = texture( myTextureSampler, UVs ).rgb;
 	eyeCoords = ViewMatrix * in_Position;
 	vertex_normal = normalize(Normal_Matrix * in_Normal.xyz);
 	gl_Position = (ProjectionMatrix * ViewMatrix * ModelMatrix) * in_Position;

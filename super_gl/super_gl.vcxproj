@@ -82,8 +82,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="loadpng.cpp" />
-    <ClCompile Include="lodepng.h" />
+    <ClCompile Include="lodepngcpp" />
     <ClCompile Include="super.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="wavefront_loader.cpp" />
@@ -101,6 +100,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3D_DataTypes.h" />
+    <ClInclude Include="lodepng.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="wavefront_loader.h" />
   </ItemGroup>

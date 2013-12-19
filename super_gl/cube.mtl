@@ -1,8 +1,6 @@
-# MTL written from C:\Users\Greg\Documents\GitHub\SuperShader3D\super_gl\cube.obj
-newmtl Flintlock_pistol
-Kd 0.8 0.8 0.8
-Ns 256
-d 1
-illum 2
-Ka 0 0 0
-Ks 0.2 0.2 0.2
+newmtl initialShadingGroup
+illum 4
+Kd 0.50 0.50 0.50
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00

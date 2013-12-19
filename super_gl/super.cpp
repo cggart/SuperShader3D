@@ -55,6 +55,7 @@ void IdleFunction(void);
 void CreateCube(void);
 void DestroyCube(void);
 void DrawCube(void);
+void keyboard(unsigned char, int, int);
 
 int main(int argc, char* argv[])
 {
@@ -106,6 +107,7 @@ void Initialize(int argc, char* argv[])
 	ViewMatrix = IDENTITY_MATRIX;
 	TranslateMatrix(&ViewMatrix, 0, 0, -2);
 
+
 	CreateCube();
 }
 
@@ -113,7 +115,7 @@ void InitWindow(int argc, char* argv[])
 {
 	glutInit(&argc, argv);
 	
-	glutInitContextVersion(3, 3);
+	glutInitContextVersion(4, 0);
 	glutInitContextFlags(GLUT_FORWARD_COMPATIBLE);
 	glutInitContextProfile(GLUT_CORE_PROFILE);
 
@@ -140,6 +142,7 @@ void InitWindow(int argc, char* argv[])
 	glutIdleFunc(IdleFunction);
 	glutTimerFunc(0, TimerFunction, 0);
 	glutCloseFunc(DestroyCube);
+	glutKeyboardFunc(keyboard);
 }
 
 void ResizeFunction(int Width, int Height)
@@ -167,6 +170,7 @@ void RenderFunction(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	DrawCube();
+
 
 	
 	glutSwapBuffers();
@@ -204,6 +208,18 @@ void TimerFunction(int Value)
 #define newVBO
 void CreateCube()
 {
+	  std::vector<unsigned char> image; //the raw pixels
+  unsigned width, height;
+
+  //decode
+  unsigned error = lodepng::decode(image, width, height, "tex.png");
+
+  //if there's an error, display it
+  if(error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+
+  //the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it,
+
+
 	gModel_3d* theModel = load_wavefront_obj("cube.obj");
 	ShaderIds[0] = glCreateProgram();
 	ExitOnGLError("ERROR: Could not create the shader program");
@@ -228,7 +244,7 @@ void CreateCube()
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
+	//glEnableVertexAttribArray(2);
 	ExitOnGLError("ERROR: Could not enable vertex attributes");
 
 	
@@ -241,11 +257,23 @@ void CreateCube()
 	//defing the positions
 	//attribute index  0 | 3 members (pos) | They Are floats (GL_FLOAT) | Do Not Normalize | stride is sizeof(vertex) | mystery pointer?) 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)sizeof(theModel->theMesh.pos[0].position));
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.uvs[0]), (GLvoid*)sizeof(theModel->theMesh.pos[0].uv));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)sizeof(theModel->theMesh.pos[0].normal));
+	//glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.uvs[0]), (GLvoid*)sizeof(theModel->theMesh.pos[0].uv));
 	//defining the colors
 	//glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(VERTICES[0]), (GLvoid*)sizeof(VERTICES[0].Position));
 	ExitOnGLError("ERROR: Could not set VAO attributes");
+
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+ 
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, textureID);
+ 
+	// Give the image to OpenGL
+	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, (const GLvoid*)&image[0]);
+ 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	//////DEFINE 
 	int indiceSize = theModel->theMesh.indices.size() * sizeof(theModel->theMesh.indices[0]);
@@ -303,4 +331,33 @@ void DrawCube(void)
 
 	glBindVertexArray(0);
 	glUseProgram(0);
+}
+
+
+void keyboard(unsigned char key, int x, int y)
+{
+	/* This time the controls are:
+	
+	  "a": move left
+	  "d": move right
+	  "w": move forward
+	  "s": move back
+	  "t": toggle depth-testing
+
+	*/
+	switch (key)
+	{
+	case 'a':
+	case 'A':
+		glTranslatef(5.0, 0.0, 0.0);
+		break;
+	case 'd':
+	case 'D':
+		glTranslatef(-5.0, 0.0, 0.0);
+		break;
+	case 'w':
+	case 'W':
+		glTranslatef(0.0, 0.0, 5.0);
+		break;
+	}
 }

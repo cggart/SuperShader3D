@@ -1,8 +1,9 @@
 #version 400
 
+ in vec3 texColor;
  in  vec3 vertex_normal;
  in  vec4 eyeCoords;
- out vec4 out_Color;
+ out vec3 out_Color;
 
 
 
@@ -14,11 +15,10 @@ void main(void)
 	light[1] = 1;
 	light[2] = 1;
 
-
 	out_Color[0] = 1;
 	out_Color[1] = 1;
 	out_Color[2] = 1;
-	out_Color[3] = 1;
+	
 	
 	//In order to calculate the specular
 	//we need to find the difference between the reflect vector
@@ -38,10 +38,7 @@ void main(void)
 	}
 
 	float diffuse_value = max(dot(vertex_normal.xyz,normalize(light.xyz)), 0.0) + 0.1 + spec;
-	out_Color = out_Color * diffuse_value;
-
-
-	
+	out_Color *=  diffuse_value;
 }
 
 
