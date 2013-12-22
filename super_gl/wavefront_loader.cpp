@@ -3,6 +3,15 @@
 
 #include "wavefront_loader.h"
 #include <iostream>
+
+	struct indicesGroup
+	{
+		int A;
+		int B;
+		int C;
+		int vertIndex;
+
+	};
 gModel_3d* load_wavefront_obj(char* filepath)
 {
 	std::vector<pos3> posList;
@@ -13,6 +22,7 @@ gModel_3d* load_wavefront_obj(char* filepath)
 	std::vector<int> uv_indices;
 	std::vector<vertex> finalList;
 	std::vector<pos2> uvList;
+	std::
 	FILE * file = std::fopen(filepath, "r");
 	if( file == NULL )
 	{
@@ -37,9 +47,7 @@ gModel_3d* load_wavefront_obj(char* filepath)
 			else if ( strcmp( lineHeader, "vn" ) == 0 )
 			{
 				pos3 normal;
-				//normal.x = 1;
-				//normal.y = 0;
-				//normal.z = 1;
+
 				fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z );
 				normalList.push_back(normal);
 				
@@ -64,29 +72,19 @@ gModel_3d* load_wavefront_obj(char* filepath)
 
 				//RE-WRITE THIS GARBAGE YOU NEED TO COMBINE EACH VERT INTO A STRUCT!
 				//Objs start at 1 instead of 0, which is nonsense, so we subtract 1
-				normIndexA = normIndexA  -1;
-				normIndexB = normIndexB - 1;
-				normIndexC= normIndexC - 1;
 
-				normal_indices.push_back(normIndexA);
-				normal_indices.push_back(normIndexB);
-				normal_indices.push_back(normIndexC);
+				normal_indices.push_back(normIndexA -1);
+				normal_indices.push_back(normIndexB -1);
+				normal_indices.push_back(normIndexC -1);
 
-				vert_1 = vert_1  -1;
-				vert_2 = vert_2 - 1;
-				vert_3 = vert_3 - 1;
+				indices.push_back(vert_1 -1);
+				indices.push_back(vert_2 -1);
+				indices.push_back(vert_3 -1);
 
-				indices.push_back(vert_1);
-				indices.push_back(vert_2);
-				indices.push_back(vert_3);
 
-				uv_indexA = uv_indexA  -1;
-				uv_indexB = uv_indexB - 1;
-				uv_indexC = uv_indexC - 1;
-
-				uv_indices.push_back(uv_indexA);
-				uv_indices.push_back(uv_indexB);
-				uv_indices.push_back(uv_indexC);
+				uv_indices.push_back(uv_indexA -1);
+				uv_indices.push_back(uv_indexB -1);
+				uv_indices.push_back(uv_indexC -1);
 
 				//Here we merge our positions & normals into one array.
 				//the normalIndex and positionIndex array should be the same length
@@ -104,20 +102,71 @@ gModel_3d* load_wavefront_obj(char* filepath)
 	int test = sizeof(*final);
 
 
+	//we merge all three components every time we make a vert
+	//so the end result will be 1/3 of the combined uve list
+	// (132, 124, ...)  grabing a single value from each vert gives us the total number of verts.
 
-	finalList.resize(indices.size());
-	int testzzz = uv_indices.size();
-	int testzzzq = normal_indices.size();
+
+
+
+    std::vector<indicesGroup> igroups;
+	std::vector<int> finalindices;
 		for(int i = 0; i < indices.size(); ++i) 
 		{
+			indicesGroup igroup;
+
+			//proposed new vertex
+			igroup.A = indices[i];
+			igroup.B = normal_indices[i];
+			igroup.C = uv_indices[i];
+
 			vertex tempVert;
 			tempVert.position = posList[indices[i]];
 			tempVert.normal = normalList[normal_indices[i]];
 			tempVert.uv = uvList[uv_indices[i]];
-			finalList[indices[i]] = tempVert;
+
+			//test new vertex to see if its actually new
+			int curIndice = i;
+			bool notFound = 1;
+			if(igroups.size() > 0)
+			{
+				//check if igroup already exists;
+				for(int x=0;x>igroups.size();x++)
+				{
+					indicesGroup curGroup = igroups[x];
+					
+					if (curGroup.A == indices[i] &&
+						curGroup.B == normal_indices[i] &&
+						curGroup.C == uv_indices[i] 
+						)
+						{
+							//we found it already exists
+							finalindices.push_back(x);
+							//don't add igroup to unique list, its not unique!
+							notFound = 0;
+							break;
+						}
+				}
+			}
+				if(notFound)
+				{
+					//We didn't find it!
+					//igroup must be brand new!
+					//lets add it to the group!
+					igroup.vertIndex = i;
+					
+					igroups.push_back(igroup);
+					//add the indice ITS NEW!;
+					finalindices.push_back(i);
+					//add the vert ITS NEW!
+					finalList.push_back(tempVert);
+					//must be knew just just add it
+				}
+			//check to see if this vert alread exists, and if it does, grab its index.
+			//other wise its new so i is the current indice.
 		}
 
-	gModel_3d* theModel = new gModel_3d(finalList,normalList,colorList,uvList,indices);
+	gModel_3d* theModel = new gModel_3d(finalList,normalList,colorList,uvList,finalindices);
 	return theModel;
 }
 std::string get_file_contents(const char *filename)

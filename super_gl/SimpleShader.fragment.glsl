@@ -1,24 +1,26 @@
 #version 400
 
- in vec3 texColor;
+ in vec2 UVs;
  in  vec3 vertex_normal;
  in  vec4 eyeCoords;
  out vec3 out_Color;
+	uniform sampler2D tex;
 
+ vec3 texColor = texture( tex, UVs ).rgb;
 
 
 void main(void)
 {
 	vec3 light;
 	
-	light[0] = 1;
-	light[1] = 1;
-	light[2] = 1;
+	light[0] = 0;
+	light[1] = 0;
+	light[2] = 2;
 
 	out_Color[0] = 1;
 	out_Color[1] = 1;
 	out_Color[2] = 1;
-	
+	out_Color = texColor;
 	
 	//In order to calculate the specular
 	//we need to find the difference between the reflect vector

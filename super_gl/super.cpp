@@ -21,7 +21,11 @@
 */
 #include "Utils.h"
 #include "wavefront_loader.h"
-#include "lodepng.h"
+#include "freeimage\FreeImage.h"
+
+
+
+int posOffset = 0;
 
 #define WINDOW_TITLE_PREFIX "Super 3D"
 int tricount;
@@ -56,6 +60,8 @@ void CreateCube(void);
 void DestroyCube(void);
 void DrawCube(void);
 void keyboard(unsigned char, int, int);
+void renderNormals(gModel_3d* model);
+
 
 int main(int argc, char* argv[])
 {
@@ -208,18 +214,6 @@ void TimerFunction(int Value)
 #define newVBO
 void CreateCube()
 {
-	  std::vector<unsigned char> image; //the raw pixels
-  unsigned width, height;
-
-  //decode
-  unsigned error = lodepng::decode(image, width, height, "tex.png");
-
-  //if there's an error, display it
-  if(error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-
-  //the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it,
-
-
 	gModel_3d* theModel = load_wavefront_obj("cube.obj");
 	ShaderIds[0] = glCreateProgram();
 	ExitOnGLError("ERROR: Could not create the shader program");
@@ -244,7 +238,7 @@ void CreateCube()
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
-	//glEnableVertexAttribArray(2);
+	glEnableVertexAttribArray(2);
 	ExitOnGLError("ERROR: Could not enable vertex attributes");
 
 	
@@ -254,26 +248,39 @@ void CreateCube()
 	glBufferData(GL_ARRAY_BUFFER, size, &theModel->theMesh.pos[0], GL_STATIC_DRAW);
 	ExitOnGLError("ERROR: Could not bind the VBO to the VAO");
 
-	//defing the positions
-	//attribute index  0 | 3 members (pos) | They Are floats (GL_FLOAT) | Do Not Normalize | stride is sizeof(vertex) | mystery pointer?) 
+	//defing the VAO
+	int posSize= sizeof(theModel->theMesh.pos[0].position);
+	int normalSize = sizeof(theModel->theMesh.pos[0].normal);
+	int uvSize = sizeof(theModel->theMesh.pos[0].uv);
+	//attribute index  0 | 3 members (pos) | They Are floats (GL_FLOAT) | Do Not Normalize | stride is sizeof(vertex) |Source of Data (0 Means current VBO)
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)sizeof(theModel->theMesh.pos[0].normal));
-	//glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.uvs[0]), (GLvoid*)sizeof(theModel->theMesh.pos[0].uv));
-	//defining the colors
-	//glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(VERTICES[0]), (GLvoid*)sizeof(VERTICES[0].Position));
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)posSize);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)(posSize+normalSize));
+
 	ExitOnGLError("ERROR: Could not set VAO attributes");
 
-	GLuint textureID;
-	glGenTextures(1, &textureID);
- 
-	// "Bind" the newly created texture : all future texture functions will modify this texture
-	glBindTexture(GL_TEXTURE_2D, textureID);
- 
-	// Give the image to OpenGL
-	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, (const GLvoid*)&image[0]);
- 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	static GLuint texture = 0;
+
+FIBITMAP* bitmap = FreeImage_Load(
+        FreeImage_GetFileType("tex.bmp", 0),
+        "tex.bmp");
+
+	FIBITMAP *pImage = FreeImage_ConvertTo32Bits(bitmap);
+	int nWidth = FreeImage_GetWidth(pImage);
+	int nHeight = FreeImage_GetHeight(pImage);
+
+	    glGenTextures(1, &texture);
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight,
+	0, GL_BGRA, GL_UNSIGNED_BYTE, (void*)FreeImage_GetBits(pImage));
+
+	FreeImage_Unload(pImage);
+
+
 
 	//////DEFINE 
 	int indiceSize = theModel->theMesh.indices.size() * sizeof(theModel->theMesh.indices[0]);
@@ -284,6 +291,29 @@ void CreateCube()
 	tricount = theModel->theMesh.indices.size();
 	glBindVertexArray(0);
 }
+
+
+
+void createNormals(gModel_3d* model)
+{
+	int size = model->theMesh.pos.size();
+
+	std::vector<pos3> normal_indices;
+	for(int i=0;i<size;i++)
+	{
+		model->theMesh.pos[0].normal;
+		//Add The Origin
+		pos3 origin = model->theMesh.pos[0].position;
+		pos3 normal = model->theMesh.pos[0].normal;
+		normal_indices.push_back(origin);
+		pos3 pos;
+		pos.x = normal.x + origin.x;
+		pos.y = normal.y + origin.y;
+		pos.z = normal.z + origin.z;
+	}
+	
+}
+
 
 void DestroyCube()
 {
@@ -307,7 +337,7 @@ void DrawCube(void)
 	if (LastTime == 0)
 		LastTime = Now;
 	ViewMatrix = IDENTITY_MATRIX;
-	TranslateMatrix(&ViewMatrix, 0.1, 0.1, -2);
+	TranslateMatrix(&ViewMatrix, 0.1, 0.1, -2+posOffset);
 	CubeRotation += 45.0f * ((float)(Now - LastTime) / CLOCKS_PER_SEC);
 	CubeAngle = DegreesToRadians(CubeRotation);
 	LastTime = Now;
@@ -329,9 +359,16 @@ void DrawCube(void)
 	glDrawElements(GL_TRIANGLES, tricount, GL_UNSIGNED_INT, (GLvoid*)0);
 	ExitOnGLError("ERROR: Could not draw the cube");
 
+
+
 	glBindVertexArray(0);
 	glUseProgram(0);
+
+
+
 }
+
+
 
 
 void keyboard(unsigned char key, int x, int y)
@@ -351,13 +388,13 @@ void keyboard(unsigned char key, int x, int y)
 	case 'A':
 		glTranslatef(5.0, 0.0, 0.0);
 		break;
-	case 'd':
-	case 'D':
-		glTranslatef(-5.0, 0.0, 0.0);
+	case 's':
+	case 'S':
+		posOffset--;
 		break;
 	case 'w':
 	case 'W':
-		glTranslatef(0.0, 0.0, 5.0);
+		posOffset++;
 		break;
 	}
 }
