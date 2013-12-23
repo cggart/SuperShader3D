@@ -24,8 +24,8 @@
 #include "freeimage\FreeImage.h"
 
 
-
-int posOffset = 0;
+float latPosOffset = 0;
+float posOffset = 0;
 
 #define WINDOW_TITLE_PREFIX "Super 3D"
 int tricount;
@@ -60,7 +60,11 @@ void CreateCube(void);
 void DestroyCube(void);
 void DrawCube(void);
 void keyboard(unsigned char, int, int);
-void renderNormals(gModel_3d* model);
+void setupLines(void);
+ 
+
+
+
 
 
 int main(int argc, char* argv[])
@@ -113,15 +117,17 @@ void Initialize(int argc, char* argv[])
 	ViewMatrix = IDENTITY_MATRIX;
 	TranslateMatrix(&ViewMatrix, 0, 0, -2);
 
-
 	CreateCube();
+	//setupLines();
 }
+
+
 
 void InitWindow(int argc, char* argv[])
 {
 	glutInit(&argc, argv);
 	
-	glutInitContextVersion(4, 0);
+	glutInitContextVersion(3, 3);
 	glutInitContextFlags(GLUT_FORWARD_COMPATIBLE);
 	glutInitContextProfile(GLUT_CORE_PROFILE);
 
@@ -212,19 +218,101 @@ void TimerFunction(int Value)
 }
 
 #define newVBO
+
+	float myLines[36] =
+	{
+		0,2,1,  0,3,2,
+		4,3,0,  4,7,3,
+		4,1,5,  4,0,1,
+		3,6,2,  3,7,6,
+		1,6,5,  1,2,6,
+		7,5,6,  7,4,5
+	};
+void setupLines()
+{
+	GLuint lineShdr_PrgmID;
+	GLuint lineShdr_vertID;
+	GLuint lineShdr_fragID;
+
+	float myLines[36] =
+	{
+		0,2,1,  0,3,2,
+		4,3,0,  4,7,3,
+		4,1,5,  4,0,1,
+		3,6,2,  3,7,6,
+		1,6,5,  1,2,6,
+		7,5,6,  7,4,5
+	};
+
+	//generate some space for our new GLSL program & grab
+	//said space's id
+	lineShdr_PrgmID = glCreateProgram();
+
+	//load from disk & compile our GLSL code and store it on the GPU
+	lineShdr_fragID = LoadShader("shaders/SimpleShader.fragment.glsl", GL_FRAGMENT_SHADER);
+	lineShdr_vertID = LoadShader("shaders/SimpleShader.vertex.glsl", GL_VERTEX_SHADER);
+
+	//Attach our compiled GLSL
+	glAttachShader(lineShdr_PrgmID, lineShdr_vertID);
+	glAttachShader(lineShdr_PrgmID, lineShdr_fragID);
+
+	//merge it all together and compile a GLSL program
+	//into an executable
+	glLinkProgram(lineShdr_PrgmID);
+	ExitOnGLError("ERROR: Could not link the shader program");
+
+	//Here we grab the IDs of the matricies with our GLSL program so that we can
+	//set them equal to our c++ controlled matricies when we are ready to render.
+
+	ModelMatrixUniformLocation = glGetUniformLocation(lineShdr_PrgmID, "ModelMatrix");
+	ViewMatrixUniformLocation = glGetUniformLocation(lineShdr_PrgmID, "ViewMatrix");
+	ProjectionMatrixUniformLocation = glGetUniformLocation(lineShdr_PrgmID, "ProjectionMatrix");
+	ExitOnGLError("ERROR: Could not get shader uniform locations");
+
+	GLuint bufferid;
+	glGenVertexArrays(1, &bufferid);
+	ExitOnGLError("ERROR: Could not generate the VAO");
+	glBindVertexArray(bufferid);
+	ExitOnGLError("ERROR: Could not bind the VAO");
+
+	glEnableVertexAttribArray(0);
+	ExitOnGLError("ERROR: Could not enable vertex attributes");
+
+	//glGenBuffer grabs a slot buffer slot from the GPU
+	//that isn't in use.  If we use one that was in use
+	//it would cause everything to go foobar.
+	//We tell it how manu slots to tell us about, and a space to store the results
+
+	GLuint linesVBOid = 0;
+	glGenBuffers(1, &linesVBOid);
+	ExitOnGLError("ERROR: Could not generate the buffer objects");
+
+
+	//Now we dump our raw data into our gpu , and free up
+	//anything on the heap.  In this case its all on the stack so
+	//no worries there.
+
+	glBindBuffer(GL_ARRAY_BUFFER, linesVBOid);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float), &myLines[0], GL_STATIC_DRAW);
+	ExitOnGLError("ERROR: Could not bind the VBO to the VAO");
+
+	glBindVertexArray(0);
+}
+
 void CreateCube()
 {
 	gModel_3d* theModel = load_wavefront_obj("cube.obj");
-	ShaderIds[0] = glCreateProgram();
-	ExitOnGLError("ERROR: Could not create the shader program");
-	{
-		ShaderIds[1] = LoadShader("SimpleShader.fragment.glsl", GL_FRAGMENT_SHADER);
-		ShaderIds[2] = LoadShader("SimpleShader.vertex.glsl", GL_VERTEX_SHADER);
+	
+		ShaderIds[0] = glCreateProgram();
+		ExitOnGLError("ERROR: Could not create the shader program");
+
+		ShaderIds[1] = LoadShader("shaders/SimpleShader.fragment.glsl", GL_FRAGMENT_SHADER);
+		ShaderIds[2] = LoadShader("shaders/SimpleShader.vertex.glsl", GL_VERTEX_SHADER);
 		glAttachShader(ShaderIds[0], ShaderIds[1]);
 		glAttachShader(ShaderIds[0], ShaderIds[2]);
-	}
-	glLinkProgram(ShaderIds[0]);
-	ExitOnGLError("ERROR: Could not link the shader program");
+		glLinkProgram(ShaderIds[0]);
+		ExitOnGLError("ERROR: Could not link the shader program");
+
 
 	ModelMatrixUniformLocation = glGetUniformLocation(ShaderIds[0], "ModelMatrix");
 	ViewMatrixUniformLocation = glGetUniformLocation(ShaderIds[0], "ViewMatrix");
@@ -240,13 +328,14 @@ void CreateCube()
 	glEnableVertexAttribArray(1);
 	glEnableVertexAttribArray(2);
 	ExitOnGLError("ERROR: Could not enable vertex attributes");
-
 	
-	ExitOnGLError("ERROR: Could not generate the buffer objects");
 	int size = theModel->theMesh.pos.size() * sizeof(theModel->theMesh.pos[0]) ;
-	glBindBuffer(GL_ARRAY_BUFFER, BufferIds[1]);
-	glBufferData(GL_ARRAY_BUFFER, size, &theModel->theMesh.pos[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, BufferIds[0]);
+	std::cout<< "Size is: " << size;
 	ExitOnGLError("ERROR: Could not bind the VBO to the VAO");
+
+	glBufferData(GL_ARRAY_BUFFER, size, &theModel->theMesh.pos[0], GL_STATIC_DRAW);
+	
 
 	//defing the VAO
 	int posSize= sizeof(theModel->theMesh.pos[0].position);
@@ -280,9 +369,6 @@ FIBITMAP* bitmap = FreeImage_Load(
 
 	FreeImage_Unload(pImage);
 
-
-
-	//////DEFINE 
 	int indiceSize = theModel->theMesh.indices.size() * sizeof(theModel->theMesh.indices[0]);
 	//int test = sizeof(INDICES);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, BufferIds[2]);
@@ -314,7 +400,6 @@ void createNormals(gModel_3d* model)
 	
 }
 
-
 void DestroyCube()
 {
 	glDetachShader(ShaderIds[0], ShaderIds[1]);
@@ -337,7 +422,7 @@ void DrawCube(void)
 	if (LastTime == 0)
 		LastTime = Now;
 	ViewMatrix = IDENTITY_MATRIX;
-	TranslateMatrix(&ViewMatrix, 0.1, 0.1, -2+posOffset);
+	TranslateMatrix(&ViewMatrix, 0+latPosOffset, 0, -2+posOffset);
 	CubeRotation += 45.0f * ((float)(Now - LastTime) / CLOCKS_PER_SEC);
 	CubeAngle = DegreesToRadians(CubeRotation);
 	LastTime = Now;
@@ -360,16 +445,12 @@ void DrawCube(void)
 	ExitOnGLError("ERROR: Could not draw the cube");
 
 
-
+	//not using a vertex definition any more
 	glBindVertexArray(0);
-	glUseProgram(0);
-
-
+	//noting using a shader anymore
+	glUseProgram(0); 
 
 }
-
-
-
 
 void keyboard(unsigned char key, int x, int y)
 {
@@ -386,15 +467,19 @@ void keyboard(unsigned char key, int x, int y)
 	{
 	case 'a':
 	case 'A':
-		glTranslatef(5.0, 0.0, 0.0);
+		latPosOffset=latPosOffset+0.05;
+		break;
+	case 'd':
+	case 'D':
+		latPosOffset=latPosOffset-0.05;
 		break;
 	case 's':
 	case 'S':
-		posOffset--;
+		posOffset=posOffset-0.05;
 		break;
 	case 'w':
 	case 'W':
-		posOffset++;
+		posOffset=posOffset+0.05;
 		break;
 	}
 }

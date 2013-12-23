@@ -20,7 +20,7 @@
 */
 
 #include "Utils.h"
-
+#include <iostream>
 float Cotangent(float angle)
 {
 	return (float)(1.0 / tan(angle));
@@ -145,7 +145,8 @@ void ExitOnGLError(const char* error_message)
 
 	if (ErrorValue != GL_NO_ERROR)
 	{
-		const char* APPEND_DETAIL_STRING = ": %s\n";
+		
+		const char* APPEND_DETAIL_STRING = " (Press Any To Exit) : %s\n";
 		const size_t APPEND_LENGTH = strlen(APPEND_DETAIL_STRING) + 1;
 		const size_t message_length = strlen(error_message);
 		char* display_message = (char*)malloc(message_length + APPEND_LENGTH);
@@ -156,6 +157,9 @@ void ExitOnGLError(const char* error_message)
 		fprintf(stderr, display_message, gluErrorString(ErrorValue));
 
 		free(display_message);
+		//pause so we have time to read what the hell is going on
+		std::cin.get();
+		//exit when we are done looking at the awful
 		exit(EXIT_FAILURE);
 	}
 }
