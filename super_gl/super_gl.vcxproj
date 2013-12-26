@@ -83,6 +83,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="super.cpp" />
+    <ClCompile Include="super_gui.cpp" />
+    <ClCompile Include="test.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="wavefront_loader.cpp" />
   </ItemGroup>
@@ -95,6 +97,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3D_DataTypes.h" />
+    <ClInclude Include="super_gui.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="wavefront_loader.h" />
   </ItemGroup>

@@ -6,7 +6,7 @@ d 1
 illum 2
 Ka 0 0 0
 Ks 0.2 0.2 0.2
-map_Kd C:\Users\Greg\Documents\GitHub\SuperShader3D\super_gl\tex.bmp
+map_Kd C:\Users\Greg\Pictures\test.BMP
 newmtl car_paint_045black
 Kd 0.8 0.8 0.8
 Ns 256
@@ -14,4 +14,3 @@ d 1
 illum 2
 Ka 0 0 0
 Ks 0.2 0.2 0.2
-map_Kd C:\Users\Greg\Documents\GitHub\SuperShader3D\super_gl\tex.bmp

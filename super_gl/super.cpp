@@ -22,7 +22,7 @@
 #include "Utils.h"
 #include "wavefront_loader.h"
 #include "freeimage\FreeImage.h"
-
+#include "super_gui.h"
 
 float latPosOffset = 0;
 float posOffset = 0;
@@ -39,7 +39,7 @@ GLuint
 	ProjectionMatrixUniformLocation,
 	ViewMatrixUniformLocation,
 	ModelMatrixUniformLocation,
-	BufferIds[1] = { 0 },
+	BufferIds[3] = { 0 },
 	ShaderIds[3] = { 0 };
 
 Matrix
@@ -56,18 +56,22 @@ void ResizeFunction(int, int);
 void RenderFunction(void);
 void TimerFunction(int);
 void IdleFunction(void);
-void CreateCube(void);
+void createMesh(void);
 void DestroyCube(void);
 void DrawCube(void);
 void keyboard(unsigned char, int, int);
 void setupLines(void);
- 
+void drawLines(void); 
 
+	GLuint lineShdr_PrgmID;
+	GLuint linesVBOid;
+	GLuint vaoBufferid;
+	GLuint lineShdr_vertID;
+	GLuint lineShdr_fragID;
 
+	bool dl = 0;
 
-
-
-int main(int argc, char* argv[])
+int  main(int argc, char* argv[])
 {
 	Initialize(argc, argv);
 
@@ -75,9 +79,9 @@ int main(int argc, char* argv[])
 	
 	exit(EXIT_SUCCESS);
 }
-
 void Initialize(int argc, char* argv[])
 {
+	initGui();
 	GLenum GlewInitResult;
 
 	InitWindow(argc, argv);
@@ -115,14 +119,13 @@ void Initialize(int argc, char* argv[])
 	ModelMatrix = IDENTITY_MATRIX;
 	ProjectionMatrix = IDENTITY_MATRIX;
 	ViewMatrix = IDENTITY_MATRIX;
+
+
 	TranslateMatrix(&ViewMatrix, 0, 0, -2);
 
-	CreateCube();
-	//setupLines();
+	createMesh();
+	setupLines();
 }
-
-
-
 void InitWindow(int argc, char* argv[])
 {
 	glutInit(&argc, argv);
@@ -156,7 +159,6 @@ void InitWindow(int argc, char* argv[])
 	glutCloseFunc(DestroyCube);
 	glutKeyboardFunc(keyboard);
 }
-
 void ResizeFunction(int Width, int Height)
 {
 	CurrentWidth = Width;
@@ -170,9 +172,12 @@ void ResizeFunction(int Width, int Height)
 			100.0f
 		);
 
-	glUseProgram(ShaderIds[0]);
-	glUniformMatrix4fv(ProjectionMatrixUniformLocation, 1, GL_FALSE, ProjectionMatrix.m);
-	glUseProgram(0);
+		glUseProgram(ShaderIds[0]);
+		glUniformMatrix4fv(ProjectionMatrixUniformLocation, 1, GL_FALSE, ProjectionMatrix.m);
+		glUseProgram(0);
+		glUseProgram(lineShdr_PrgmID);
+		glUniformMatrix4fv(ProjectionMatrixUniformLocation, 1, GL_FALSE, ProjectionMatrix.m);
+		glUseProgram(0);
 }
 
 void RenderFunction(void)
@@ -182,18 +187,17 @@ void RenderFunction(void)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	DrawCube();
-
+	if(dl)
+	drawLines();
 
 	
 	glutSwapBuffers();
 	glutPostRedisplay();
 }
-
 void IdleFunction(void)
 {
 	glutPostRedisplay();
 }
-
 void TimerFunction(int Value)
 {
 	if (0 != Value) {
@@ -216,45 +220,74 @@ void TimerFunction(int Value)
 	FrameCount = 0;
 	glutTimerFunc(250, TimerFunction, 1);
 }
-
-#define newVBO
-
-	float myLines[36] =
-	{
-		0,2,1,  0,3,2,
-		4,3,0,  4,7,3,
-		4,1,5,  4,0,1,
-		3,6,2,  3,7,6,
-		1,6,5,  1,2,6,
-		7,5,6,  7,4,5
-	};
-void setupLines()
+void drawLines(void)
 {
-	GLuint lineShdr_PrgmID;
-	GLuint lineShdr_vertID;
-	GLuint lineShdr_fragID;
+	float CubeAngle;
+	clock_t Now = clock();
 
-	float myLines[36] =
-	{
-		0,2,1,  0,3,2,
-		4,3,0,  4,7,3,
-		4,1,5,  4,0,1,
-		3,6,2,  3,7,6,
-		1,6,5,  1,2,6,
-		7,5,6,  7,4,5
-	};
+	if (LastTime == 0)
+		LastTime = Now;
+	ViewMatrix = IDENTITY_MATRIX;
+	TranslateMatrix(&ViewMatrix, 0+latPosOffset, 0, -2+posOffset);
+	CubeRotation += 45.0f * ((float)(Now - LastTime) / CLOCKS_PER_SEC);
+	CubeAngle = DegreesToRadians(CubeRotation);
+	LastTime = Now;
+
+	ModelMatrix = IDENTITY_MATRIX;
+	RotateAboutY(&ModelMatrix, CubeAngle);
+
+
+	//glUseProgram(ShaderIds[0]);
+	glUseProgram(lineShdr_PrgmID);
+	ExitOnGLError("ERROR: Could not use the shader program");
+
+	ExitOnGLError("ERROR: Could not use the shader program");
+
+	glUniformMatrix4fv(ModelMatrixUniformLocation, 1, GL_FALSE, ModelMatrix.m);
+	glUniformMatrix4fv(ViewMatrixUniformLocation, 1, GL_FALSE, ViewMatrix.m);
+	ExitOnGLError("ERROR: Could not set the shader uniforms");
+
+	glBindVertexArray(vaoBufferid);
+	ExitOnGLError("ERROR: Could not bind the VAO for drawing purposes");
+
+	glDrawArrays(GL_LINES, 0, 36);
+
+	ExitOnGLError("ERROR: Could not draw the cube");
+
+	//not using a vertex definition any more
+	glBindVertexArray(0);
+	//noting using a shader anymore
+	glUseProgram(0); 
+
+}
+void setupLines()
+{	
+
+float myLines[] = {
+  // X      Y     Z     
+    -0.5f,  0.5f, 0.0f,
+     0.5f,  0.5f, 0.0f,
+     0.5f, -0.5f, 0.0f, 
+    -0.5f, -0.5f, 0.0f,
+	-0.8f, -0.1f, 13.0f,
+	-0.5f,  0.5f, 0.0f,
+	  1,	2,		3,
+	  1,    1,      1,
+	  4,   0.8,     2,
+	  0,    0,      1
+};
 
 	//generate some space for our new GLSL program & grab
 	//said space's id
 	lineShdr_PrgmID = glCreateProgram();
-
+		ExitOnGLError("ERROR: Could not create the shader program");
 	//load from disk & compile our GLSL code and store it on the GPU
-	lineShdr_fragID = LoadShader("shaders/SimpleShader.fragment.glsl", GL_FRAGMENT_SHADER);
-	lineShdr_vertID = LoadShader("shaders/SimpleShader.vertex.glsl", GL_VERTEX_SHADER);
+	lineShdr_fragID = LoadShader("shaders/lineShader.fragment.glsl", GL_FRAGMENT_SHADER);
+	lineShdr_vertID = LoadShader("shaders/lineShader.vertex.glsl", GL_VERTEX_SHADER);
 
 	//Attach our compiled GLSL
-	glAttachShader(lineShdr_PrgmID, lineShdr_vertID);
 	glAttachShader(lineShdr_PrgmID, lineShdr_fragID);
+	glAttachShader(lineShdr_PrgmID, lineShdr_vertID);
 
 	//merge it all together and compile a GLSL program
 	//into an executable
@@ -269,10 +302,12 @@ void setupLines()
 	ProjectionMatrixUniformLocation = glGetUniformLocation(lineShdr_PrgmID, "ProjectionMatrix");
 	ExitOnGLError("ERROR: Could not get shader uniform locations");
 
-	GLuint bufferid;
-	glGenVertexArrays(1, &bufferid);
+
+	glGenVertexArrays(1, &vaoBufferid);
 	ExitOnGLError("ERROR: Could not generate the VAO");
-	glBindVertexArray(bufferid);
+	
+	//Make our VBO Current VBO
+	glBindVertexArray(vaoBufferid);
 	ExitOnGLError("ERROR: Could not bind the VAO");
 
 	glEnableVertexAttribArray(0);
@@ -283,7 +318,7 @@ void setupLines()
 	//it would cause everything to go foobar.
 	//We tell it how manu slots to tell us about, and a space to store the results
 
-	GLuint linesVBOid = 0;
+	linesVBOid = 0;
 	glGenBuffers(1, &linesVBOid);
 	ExitOnGLError("ERROR: Could not generate the buffer objects");
 
@@ -293,25 +328,27 @@ void setupLines()
 	//no worries there.
 
 	glBindBuffer(GL_ARRAY_BUFFER, linesVBOid);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float), &myLines[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(myLines), &myLines[0], GL_STATIC_DRAW);
 	ExitOnGLError("ERROR: Could not bind the VBO to the VAO");
+
+	//attribute index  0 | 3 members (pos) | They Are floats (GL_FLOAT) | Do Not Normalize | stride is sizeof(vertex) |Source of Data (0 Means current VBO)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(pos3), (GLvoid*)0);
 
 	glBindVertexArray(0);
 }
-
-void CreateCube()
+void createMesh()
 {
 	gModel_3d* theModel = load_wavefront_obj("cube.obj");
 	
 		ShaderIds[0] = glCreateProgram();
 		ExitOnGLError("ERROR: Could not create the shader program");
 
-		ShaderIds[1] = LoadShader("shaders/SimpleShader.fragment.glsl", GL_FRAGMENT_SHADER);
-		ShaderIds[2] = LoadShader("shaders/SimpleShader.vertex.glsl", GL_VERTEX_SHADER);
-		glAttachShader(ShaderIds[0], ShaderIds[1]);
-		glAttachShader(ShaderIds[0], ShaderIds[2]);
-		glLinkProgram(ShaderIds[0]);
-		ExitOnGLError("ERROR: Could not link the shader program");
+	ShaderIds[1] = LoadShader("shaders/SimpleShader.fragment.glsl", GL_FRAGMENT_SHADER);
+	ShaderIds[2] = LoadShader("shaders/SimpleShader.vertex.glsl", GL_VERTEX_SHADER);
+	glAttachShader(ShaderIds[0], ShaderIds[1]);
+	glAttachShader(ShaderIds[0], ShaderIds[2]);
+	glLinkProgram(ShaderIds[0]);
+	ExitOnGLError("ERROR: Could not link the shader program");
 
 
 	ModelMatrixUniformLocation = glGetUniformLocation(ShaderIds[0], "ModelMatrix");
@@ -327,16 +364,18 @@ void CreateCube()
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 	glEnableVertexAttribArray(2);
+
 	ExitOnGLError("ERROR: Could not enable vertex attributes");
 	
-	int size = theModel->theMesh.pos.size() * sizeof(theModel->theMesh.pos[0]) ;
-	glBindBuffer(GL_ARRAY_BUFFER, BufferIds[0]);
-	std::cout<< "Size is: " << size;
+		glGenBuffers(2, &BufferIds[1]);
+	ExitOnGLError("ERROR: Could not generate the buffer objects");
+
+		int size = theModel->theMesh.pos.size() * sizeof(theModel->theMesh.pos[0]) ;
+
+	glBindBuffer(GL_ARRAY_BUFFER, 1);
 	ExitOnGLError("ERROR: Could not bind the VBO to the VAO");
-
-	glBufferData(GL_ARRAY_BUFFER, size, &theModel->theMesh.pos[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, size,  &theModel->theMesh.pos[0], GL_STATIC_DRAW);
 	
-
 	//defing the VAO
 	int posSize= sizeof(theModel->theMesh.pos[0].position);
 	int normalSize = sizeof(theModel->theMesh.pos[0].normal);
@@ -377,9 +416,6 @@ FIBITMAP* bitmap = FreeImage_Load(
 	tricount = theModel->theMesh.indices.size();
 	glBindVertexArray(0);
 }
-
-
-
 void createNormals(gModel_3d* model)
 {
 	int size = model->theMesh.pos.size();
@@ -399,7 +435,6 @@ void createNormals(gModel_3d* model)
 	}
 	
 }
-
 void DestroyCube()
 {
 	glDetachShader(ShaderIds[0], ShaderIds[1]);
@@ -413,12 +448,10 @@ void DestroyCube()
 	glDeleteVertexArrays(1, &BufferIds[0]);
 	ExitOnGLError("ERROR: Could not destroy the buffer objects");
 }
-
 void DrawCube(void)
 {
 	float CubeAngle;
 	clock_t Now = clock();
-
 	if (LastTime == 0)
 		LastTime = Now;
 	ViewMatrix = IDENTITY_MATRIX;
@@ -444,14 +477,11 @@ void DrawCube(void)
 	glDrawElements(GL_TRIANGLES, tricount, GL_UNSIGNED_INT, (GLvoid*)0);
 	ExitOnGLError("ERROR: Could not draw the cube");
 
-
 	//not using a vertex definition any more
 	glBindVertexArray(0);
 	//noting using a shader anymore
 	glUseProgram(0); 
-
 }
-
 void keyboard(unsigned char key, int x, int y)
 {
 	/* This time the controls are:
@@ -472,6 +502,10 @@ void keyboard(unsigned char key, int x, int y)
 	case 'd':
 	case 'D':
 		latPosOffset=latPosOffset-0.05;
+		break;
+	case 'f':
+	case 'F':
+		if(dl){dl = 0;}else{dl=1;}
 		break;
 	case 's':
 	case 'S':

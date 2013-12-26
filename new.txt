@@ -1,0 +1,78 @@
+void CreateCube()
+{
+	gModel_3d* theModel = load_wavefront_obj("cube.obj");
+	
+		ShaderIds[0] = glCreateProgram();
+		ExitOnGLError("ERROR: Could not create the shader program");
+
+		ShaderIds[1] = LoadShader("shaders/lineShader.fragment.glsl", GL_FRAGMENT_SHADER);
+		ShaderIds[2] = LoadShader("shaders/lineShader.vertex.glsl", GL_VERTEX_SHADER);
+		glAttachShader(ShaderIds[0], ShaderIds[1]);
+		glAttachShader(ShaderIds[0], ShaderIds[2]);
+		glLinkProgram(ShaderIds[0]);
+		ExitOnGLError("ERROR: Could not link the shader program");
+
+
+	ModelMatrixUniformLocation = glGetUniformLocation(ShaderIds[0], "ModelMatrix");
+	ViewMatrixUniformLocation = glGetUniformLocation(ShaderIds[0], "ViewMatrix");
+	ProjectionMatrixUniformLocation = glGetUniformLocation(ShaderIds[0], "ProjectionMatrix");
+	ExitOnGLError("ERROR: Could not get shader uniform locations");
+
+	glGenVertexArrays(1, &BufferIds[0]);
+	ExitOnGLError("ERROR: Could not generate the VAO");
+	glBindVertexArray(BufferIds[0]);
+	ExitOnGLError("ERROR: Could not bind the VAO");
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	ExitOnGLError("ERROR: Could not enable vertex attributes");
+	
+	int size = theModel->theMesh.pos.size() * sizeof(theModel->theMesh.pos[0]) ;
+	glBindBuffer(GL_ARRAY_BUFFER, BufferIds[0]);
+	std::cout<< "Size is: " << size;
+	ExitOnGLError("ERROR: Could not bind the VBO to the VAO");
+
+	glBufferData(GL_ARRAY_BUFFER, size, &theModel->theMesh.pos[0], GL_STATIC_DRAW);
+	
+
+	//defing the VAO
+	int posSize= sizeof(theModel->theMesh.pos[0].position);
+	int normalSize = sizeof(theModel->theMesh.pos[0].normal);
+	int uvSize = sizeof(theModel->theMesh.pos[0].uv);
+	//attribute index  0 | 3 members (pos) | They Are floats (GL_FLOAT) | Do Not Normalize | stride is sizeof(vertex) |Source of Data (0 Means current VBO)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)0);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)posSize);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(theModel->theMesh.pos[0]), (GLvoid*)(posSize+normalSize));
+
+	ExitOnGLError("ERROR: Could not set VAO attributes");
+
+	static GLuint texture = 0;
+
+FIBITMAP* bitmap = FreeImage_Load(
+        FreeImage_GetFileType("tex.bmp", 0),
+        "tex.bmp");
+
+	FIBITMAP *pImage = FreeImage_ConvertTo32Bits(bitmap);
+	int nWidth = FreeImage_GetWidth(pImage);
+	int nHeight = FreeImage_GetHeight(pImage);
+
+	    glGenTextures(1, &texture);
+
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight,
+	0, GL_BGRA, GL_UNSIGNED_BYTE, (void*)FreeImage_GetBits(pImage));
+
+	FreeImage_Unload(pImage);
+
+	int indiceSize = theModel->theMesh.indices.size() * sizeof(theModel->theMesh.indices[0]);
+	//int test = sizeof(INDICES);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, BufferIds[2]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indiceSize, &theModel->theMesh.indices[0], GL_STATIC_DRAW);
+	ExitOnGLError("ERROR: Could not bind the IBO to the VAO");
+	tricount = theModel->theMesh.indices.size();
+	glBindVertexArray(0);
+}
